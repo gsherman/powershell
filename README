@@ -12,4 +12,3 @@ PublishActivity.ps1
 PublishActivity.bat
 	A simple wrapper script that changes to the correct directory and invokes the	PublishActivity.ps1 powershell script
 	
-	more.
