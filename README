@@ -1,0 +1,15 @@
+A collection of Powershell scripts for use with a Dovetail/Clarify environment.
+
+DovetailCommonFunctions.ps1
+	A set of common functions for working with the Dovetail SDK
+	
+dovetail.config
+	Database connection and logging configuration 
+	
+PublishActivity.ps1
+	Publish an activity to a Socialcast activity stream
+	
+PublishActivity.bat
+	A simple wrapper script that changes to the correct directory and invokes the	PublishActivity.ps1 powershell script
+	
+	more.
