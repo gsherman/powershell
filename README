@@ -5,10 +5,17 @@ DovetailCommonFunctions.ps1
 	
 dovetail.config
 	Database connection and logging configuration 
-	
+
+LoadConfig.ps1
+	Loads config file into global appsettings. Used by DovetailCommonFunctions.ps1
+
+		
 PublishActivity.ps1
 	Publish an activity to a Socialcast activity stream
 	
 PublishActivity.bat
 	A simple wrapper script that changes to the correct directory and invokes the	PublishActivity.ps1 powershell script
-	
+
+saveQueryToExcel.ps1
+	example of saving data to Excel
+		
