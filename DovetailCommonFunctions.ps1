@@ -1,7 +1,7 @@
 function configure-logging()
 {
 	$LogManager = [FChoice.Common.LogManager]
-	$LogManager::LogConfigFilePath = "C:\\logging.config" 
+	$LogManager::LogConfigFilePath = $appSettings["logConfigFilePath"];
 	$LogManager::Reconfigure()
 }
 

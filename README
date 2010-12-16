@@ -1,4 +1,5 @@
 A collection of Powershell scripts for use with a Dovetail/Clarify environment.
+Requires the Dovetail SDK.
 
 DovetailCommonFunctions.ps1
 	A set of common functions for working with the Dovetail SDK
@@ -9,7 +10,6 @@ dovetail.config
 LoadConfig.ps1
 	Loads config file into global appsettings. Used by DovetailCommonFunctions.ps1
 
-		
 PublishActivity.ps1
 	Publish an activity to a Socialcast activity stream
 	
@@ -18,4 +18,21 @@ PublishActivity.bat
 
 saveQueryToExcel.ps1
 	example of saving data to Excel
-		
+
+CloseCase.ps1 
+	powershell script to close a case
+	
+CloseCase.bat 
+	A simple wrapper script that changes to the correct directory and invokes the	CloseCase.ps1 powershell script		
+
+ChangeCaseStatus.ps1 
+	powershell script to change the status of a case
+	
+ChangeCaseStatus.bat 
+	A simple wrapper script that changes to the correct directory and invokes the	ChangeCaseStatus.ps1 powershell script	
+
+SetInitialResponse.ps1 
+	powershell script to set the initial response flag on a case
+	
+SetInitialResponse.bat 
+	A simple wrapper script that changes to the correct directory and invokes the	SetInitialResponse.ps1 powershell script			
