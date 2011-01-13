@@ -36,3 +36,10 @@ SetInitialResponse.ps1
 	
 SetInitialResponse.bat 
 	A simple wrapper script that changes to the correct directory and invokes the	SetInitialResponse.ps1 powershell script			
+	
+UpdateLastModifyTimestamp.ps1 
+	powershell script to update the last modified timestamp on an object
+	
+UpdateLastModifyTimestamp.bat 
+	A simple wrapper script that changes to the correct directory and invokes the	UpdateLastModifyTimestamp.ps1 powershell script			
+	
