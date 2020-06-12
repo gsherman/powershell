@@ -1,7 +1,7 @@
 @echo off
 
 REM Directory where the powershell script is located:
-SET WORKING_DIR=C:\dovetail\powershell
+SET WORKING_DIR=C:\repo\powershell
 
 cd %WORKING_DIR%
 
