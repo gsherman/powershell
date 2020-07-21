@@ -6,13 +6,19 @@ Calling syntax:
 	.\importcases.ps1 input.xlsx 							Implicit dryRun = true
 	.\importcases.ps1 input.xlsx true						Explicit dryRun = true
 	.\importcases.ps1 input.xlsx false 						Explicit dryRun = false
-	.\ImportCases.ps1 -inputfile 1-cases.xlsx -dryrun true	Using named parameters
+	.\ImportCases.ps1 -inputfile cases.xlsx -dryrun true	Using named parameters
 
-	Notes:
+Notes:
 	* this assumes the create-date and close-date in the excel file are in the local time zone (where PS is being run), which may not be true. we may need to be more robust here
-	* this script imports cases one at a time. it does not batch them. maybe add support later for creating a batch of cases. multiple cases in the Cases array. or maybe that's a different script?
+
+Outputs: 
+
+ 	* log file, in the \logs directory
+ 	* idMappings file, in the \logs directory, in a JSON format. This is for mapping old case IDs to newly created case ID
 #>
 
+
+# Giddyup
 
 $failOnWarnings=$false;
 $username = "dovetail-api";
@@ -28,10 +34,22 @@ $url="http://localhost/api/v5/cases";
 #>
 $global:logLevel=4;
 
+# initialize the pass/fail counters
+$global:pass=0;
+$global:fail=0;
+
 # build the log file name
 $thisScript = (Get-Item $PSCommandPath ).Basename;
 $FormattedDate = Get-Date -Format "yyyy-MM-dd-HH-mm-ss";
-$logFile = "$($thisScript)_$($FormattedDate).log";
+$logFile = "logs\$($thisScript)_$($FormattedDate).log";
+
+# dateTime format
+$dateTimeFormat="yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fff'Z'";
+
+# idMappings - map old case IDs to newly created case ID and save to a file for later use
+$idMappings = @{}
+$altID = '';
+$idMappingFileName = "logs\idMappings_$($FormattedDate).json";
 
 ##########################
 # Log to Console and to a File
@@ -100,26 +118,29 @@ function Write-Log
 function ProcessResponse{
 	param( $response)
 
-	$resultsIndex=0;
-	$status= $responseObject.results[$resultsIndex].status;
-	$correlationId= $responseObject.results[$resultsIndex].correlationId;
-	$warningsArray= $responseObject.results[$resultsIndex].warnings;
-	$errorsArray= $responseObject.results[$resultsIndex].errors;
+	$status = $response.statuscode;
+	$correlationId= $responseObject.correlationId;
+	$warningsArray= $responseObject.warnings;
+	$errorsArray= $responseObject.errors;
 
 	if ($status -eq 201){
-		$href= $responseObject.results[$resultsIndex].href;
-		$id= $responseObject.results[$resultsIndex].id;
-		$caseId= $responseObject.results[$resultsIndex].identifier;
+		$href= $responseObject.href;
+		$id= $responseObject.id;
+		$caseId= $responseObject.identifier;
 
 		if ($dryRun -eq $true){
 			write-log -Message "Success 201. Dry Run. For correlationId $($correlationId)" -Level "Info";
 		}else{
 			write-log -Message "Success 201. Newly created case id: $($caseId) for correlationId $($correlationId)" -Level "Info";
+			$idMappings[$altID] = $caseId;
 		}
 
-	}else{
-		write-log -Message "Create Case Failed on row $rowIndex for correlationId $correlationId with status $status" -Level "Error"
-	}
+		$global:pass++;
+
+	 }else{
+	 	write-log -Message "Create Case Failed on row $rowIndex for correlationId $correlationId with status $status" -Level "Error"
+	 	$global:fail++;
+	 }
 
 	foreach ($warning in $warningsArray){
 		$message = "on row " + $rowIndex + " for field: " + $warning.field + " - " + $warning.description;
@@ -161,9 +182,9 @@ function BuildRequestBody{
 	if ($row.queue) { $case.queue = $row.queue.toString(); }
 	if ($row.originatorUserName) { $case.originatorUserName = $row.originatorUserName.toString(); }
 	if ($row.ownerUserName) { $case.ownerUserName = $row.ownerUserName.toString(); }
-	if ($row.availableInPortal) { $case.availableInPortal = $row.availableInPortal.toString(); }
-	if ($row.sensitive) { $case.sensitive = $row.sensitive.toString(); }
-	if ($row.createEvents) { $case.createEvents = $row.createEvents.toString(); }	
+	if ($row.availableInPortal) { $case.availableInPortal = $row.availableInPortal.toString().Trim(); }
+	if ($row.sensitive) { $case.sensitive = $row.sensitive.toString().Trim(); }
+	if ($row.createEvents) { $case.createEvents = $row.createEvents.toString().Trim(); }	
 	if ($row.closeNotes) { $case.closeNotes = $row.closeNotes.toString(); }
 	if ($row.closeResolution) { $case.closeResolution = $row.closeResolution.toString(); }
 
@@ -171,14 +192,14 @@ function BuildRequestBody{
 	# this assumes the date is in the file the local time zone (where PS is being run), which may not be true. we may need to be more robust here
 	if ($row.createDate) { 
 	 	$dt = Get-Date($row.createDate);
-		$case.createDate = $dt.ToUniversalTime().ToString("s") + "Z"; 
+		$case.createDate = $dt.ToUniversalTime().ToString($dateTimeFormat); 		
 	}
 
 	# Convert CloseDate into UTC and into an ISO-8601 format
 	# this assumes the date is in the file the local time zone (where PS is being run), which may not be true. we may need to be more robust here
 	if ($row.closeDate) { 
 	 	$dt = Get-Date($row.closeDate);
-		$case.closeDate = $dt.ToUniversalTime().ToString("s")  + "Z"; 
+		$case.closeDate = $dt.ToUniversalTime().ToString($dateTimeFormat); 
 	}
 
 	# Turn labels into an array
@@ -190,16 +211,12 @@ function BuildRequestBody{
 	# build up the body of the request 
 	# set the global variables
 
-	$body = @{
-		dryRun = $dryRun;  
-		failOnWarnings = $failOnWarnings;
-		};
-
-	$caseArray = @($case);	
-	$body.Cases = $caseArray;
+	# set the options
+	$case.dryRun = $dryRun;
+	$case.failOnWarnings = $failOnWarnings;
 
 	# convert to json
-	$jsonRequestBody = $body | convertto-json -Depth 5;
+	$jsonRequestBody = $case | convertto-json -Depth 5;
 	$jsonRequestBody
 }
 
@@ -210,6 +227,7 @@ function BuildRequestBody{
 function CreateCase{
  param( $row, [int]$rowIndex )
 
+	write-log " "  -Level "Info";
 	write-log "--------------------------"  -Level "Info";
 	write-log "Processing row $rowIndex" -Level "Info"; 
 
@@ -220,6 +238,7 @@ function CreateCase{
 		if (!([DateTime]::TryParse($row.createDate,[ref]$result))){
 			$createDate = $row.createDate;
 			write-log -Message "Invalid createDate: $($createDate) on row $($rowIndex)" -Level "Error"; 
+			$global:fail++;
 			return;
 		}
 	}
@@ -231,6 +250,7 @@ function CreateCase{
 		if (!([DateTime]::TryParse($row.closeDate,[ref]$result))){
 			$closeDate = $row.closeDate;
 			write-log -Message "Invalid closeDate: $($closeDate) on row $($rowIndex)" -Level "Error"; 
+			$global:fail++;
 			return;
 		}
 	}
@@ -238,6 +258,15 @@ function CreateCase{
 	$jsonRequestBody = BuildRequestBody $row $rowIndex;
 
 	write-log -Message $jsonRequestBody.ToString() -Level "Debug"; 
+
+	$altID = '';
+	if ($row.ID) { 
+		$altId = $row.ID.toString(); 
+	}else{
+		$altID = "excel_row_" + $rowIndex;
+	}
+
+	$idMappings[$altID] = "";
 
 	$credPair = "$($username):$($password)" 
 	$encodedCredentials = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes($credPair)) 
@@ -261,22 +290,20 @@ function CreateCase{
 		 	$response = $_.ErrorDetails.Message
 		   	$err=$_.Exception;
 			$statusCode = $err.Response.StatusCode.value__
-
+			
 			write-log -Message "HTTP Request Failed. HTTP Status Code: $statusCode"  -Level "Error";
 			if ($response) {write-log $response -Level "Debug";}
 
-			# 407 - multi-status, some cases succeeded, some failed
-			if (($statusCode -eq 407) -or ($statusCode -eq 400)){
+			if (($statusCode -eq 400) -and ($response)){
 				$responseObject = $response | convertFrom-Json;
 				ProcessResponse $response;
 			}else{
-				write-log $response -Level "Debug";
+				$global:fail++;
 			}
 
 	 } # end catch block
 
 } #end function
-
 
 
 ##################
@@ -285,6 +312,7 @@ function CreateCase{
 If ((Get-Module -ListAvailable -Name "ImportExcel") -eq $null){
 	Install-module ImportExcel;
 }
+
 
 write-log "Reading data from excel file: $($inputFile)" -Level "Info";
 
@@ -299,3 +327,9 @@ foreach ($excelRow in $excel){
 	$rowCounter = $rowCounter + 1;
 	CreateCase $excelRow $rowCounter;
 }
+
+ write-log "------------------------" -Level "Info";
+ write-log "Pass: $($global:pass) of $($excel.count)" -Level "Info";
+ write-log "Fail: $($global:fail) of $($excel.count)" -Level "Info";
+
+$idMappings | ConvertTo-Json |  set-content $idMappingFileName
