@@ -49,7 +49,7 @@ $dateTimeFormat="yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fff'Z'";
 # idMappings - map old case IDs to newly created case ID and save to a file for later use
 $idMappings = @{}
 $altID = '';
-$idMappingFileName = "mappings\idMappings_$($FormattedDate).json";
+$idMappingFileName = "logs\idMappings_$($FormattedDate).json";
 
 ##########################
 # Log to Console and to a File
