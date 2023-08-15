@@ -27,7 +27,7 @@ $customFieldNames+= "emojis 💥❤️✔️";
 # Append this to the end of certain fields (employeeID, username, hrisid), to allow for uniqueness
 # for example, use ".2"
 # set to empty string for normal use
-$testingFieldAppendix=".7";
+$testingFieldAppendix="";
 
 <# Log Levels:
     OFF = 0
