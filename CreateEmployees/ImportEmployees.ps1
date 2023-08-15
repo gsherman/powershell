@@ -12,7 +12,8 @@ Outputs:
 # Global Variables
 $username = "dovetail-api";
 $password="letmein";
-$url="http://localhost/api/v5/employees";
+# url for create-employee API
+$url="https://default.lclhst.io/api/v5/employees";
 
 # Custom Fields
 $customFieldNames =  @();
@@ -23,9 +24,10 @@ $customFieldNames+= "Performance Indicator";
 $customFieldNames+= "emojis 💥❤️✔️";
 
 # For Testing Use Only
-# Append this to the end of certain fields (employeeID, username), to allow for uniqueness
+# Append this to the end of certain fields (employeeID, username, hrisid), to allow for uniqueness
+# for example, use ".2"
 # set to empty string for normal use
-$testingFieldAppendix="";
+$testingFieldAppendix=".7";
 
 <# Log Levels:
     OFF = 0
@@ -154,7 +156,7 @@ function BuildRequestBody{
 	if ($row.FirstName) { $employee.firstName = $row.FirstName.toString().Trim(); }
 	if ($row.LastName) { $employee.lastName = $row.LastName.toString().Trim(); }
 	if ($row.EmployeeID) { $employee.employeeID = $row.EmployeeID.toString().Trim() + $testingFieldAppendix; }
-	if ($row.HRISId) { $employee.HRISId = $row.HRISId.toString().Trim(); }
+	if ($row.HRISId) { $employee.HRISId = $row.HRISId.toString().Trim()  + $testingFieldAppendix; }
 	if ($row.EmployeeTitle) { $employee.title = $row.EmployeeTitle.toString().Trim(); }
 	if ($row.PreferredFirstName) { $employee.preferredFirstName = $row.PreferredFirstName.toString().Trim(); }
 	if ($row.MiddleName) { $employee.middleName = $row.MiddleName.toString().Trim(); }
@@ -275,7 +277,6 @@ function CreateEmployee{
 	} 
 
 	try{
-		#$response = Invoke-WebRequest -Uri $url -Method Post -Body $jsonRequestBody -ContentType "application/json" -Headers $requestHeaders 
 		$response = Invoke-WebRequest -Uri $url -Method Post -Body ([System.Text.Encoding]::UTF8.GetBytes($jsonRequestBody)) -ContentType "application/json" -Headers $requestHeaders 
 		
 
