@@ -14,6 +14,19 @@ $username = "dovetail-api";
 $password="letmein";
 $url="http://localhost/api/v5/employees";
 
+# Custom Fields
+$customFieldNames =  @();
+$customFieldNames+= "Flight Risk";
+$customFieldNames+= "Manager";
+$customFieldNames+= "Salary";
+$customFieldNames+= "Performance Indicator";
+$customFieldNames+= "emojis 💥❤️✔️";
+
+# For Testing Use Only
+# Append this to the end of certain fields (employeeID, username), to allow for uniqueness
+# set to empty string for normal use
+$testingFieldAppendix="";
+
 <# Log Levels:
     OFF = 0
     ERROR = 1
@@ -109,12 +122,12 @@ function ProcessResponse{
 	if ($status -eq 201){
 		$href= $responseObject.href;
 
-		write-log -Message "Success 201. Newly created employee: $($href))" -Level "Info";
+		write-log -Message "Success 201. Newly created employee: $($href)" -Level "Info";
 
 		$global:pass++;
 
 	 }else{
-	 	write-log -Message "Create Employee Failed on row $rowIndex with status $status" -Level "Error"
+	 	write-log -Message "Create Employee Failed on row $rowIndex" -Level "Error"
 	 	$global:fail++;
 	 }
 
@@ -140,7 +153,7 @@ function BuildRequestBody{
 
 	if ($row.FirstName) { $employee.firstName = $row.FirstName.toString().Trim(); }
 	if ($row.LastName) { $employee.lastName = $row.LastName.toString().Trim(); }
-	if ($row.EmployeeID) { $employee.employeeID = $row.EmployeeID.toString().Trim(); }
+	if ($row.EmployeeID) { $employee.employeeID = $row.EmployeeID.toString().Trim() + $testingFieldAppendix; }
 	if ($row.HRISId) { $employee.HRISId = $row.HRISId.toString().Trim(); }
 	if ($row.EmployeeTitle) { $employee.title = $row.EmployeeTitle.toString().Trim(); }
 	if ($row.PreferredFirstName) { $employee.preferredFirstName = $row.PreferredFirstName.toString().Trim(); }
@@ -151,7 +164,7 @@ function BuildRequestBody{
 	if ($row.SiteID) { $employee.primarySiteId = $row.SiteID.toString().Trim(); }
 	if ($row.isContingent) { $employee.isContingent = $row.isContingent.toString().Trim(); }
 	if ($row.JobTitle) { $employee.jobTitle = $row.JobTitle.toString().Trim(); }
-	if ($row.PortalSSOUsername) { $employee.username = $row.PortalSSOUsername.toString().Trim(); }
+	if ($row.PortalSSOUsername) { $employee.username = $row.PortalSSOUsername.toString().Trim()  + $testingFieldAppendix; }
 	if ($row.PortalAccess) { $employee.loginStatus = $row.PortalAccess.toString().Trim(); }
 	if ($row.Culture) { $employee.preferredCulture = $row.Culture.toString().Trim(); }
 	if ($row.AvatarUrl) { $employee.avatarUrl = $row.AvatarUrl.toString().Trim(); }
@@ -190,7 +203,7 @@ function BuildRequestBody{
 	$homeEmail.email = $row.PrimaryEmail.toString().Trim();
 
 	$alternateEmail =  @{};
-	$alternateEmail.emailType = "Alternate";
+	$alternateEmail.emailType = "Other";
 	$alternateEmail.email = $row.PrimaryEmail.toString().Trim();
 
 	$emailArray =  @();
@@ -216,13 +229,6 @@ function BuildRequestBody{
 		$employee.tags = $tagsArray;		
 	}
 
-	# Custom Fields
-	$customFieldNames =  @();
-	$customFieldNames+= "Flight Risk";
-	$customFieldNames+= "Manager";
-	$customFieldNames+= "Salary";
-	$customFieldNames+= "Performance Indicator";
-	$customFieldNames+= "emojis 💥❤️✔️";
 
 	$customFields =  @();
 	$customFieldNames.ForEach(
@@ -258,6 +264,9 @@ function CreateEmployee{
 
 	write-log -Message $jsonRequestBody.ToString() -Level "Debug"; 
 
+	# testing
+	# return;
+
 	$credPair = "$($username):$($password)" 
 	$encodedCredentials = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes($credPair)) 
 	$requestHeaders = @{ 
@@ -266,7 +275,10 @@ function CreateEmployee{
 	} 
 
 	try{
-		$response = Invoke-WebRequest -Uri $url -Method Post -Body $jsonRequestBody -ContentType "application/json" -Headers $requestHeaders 
+		#$response = Invoke-WebRequest -Uri $url -Method Post -Body $jsonRequestBody -ContentType "application/json" -Headers $requestHeaders 
+		$response = Invoke-WebRequest -Uri $url -Method Post -Body ([System.Text.Encoding]::UTF8.GetBytes($jsonRequestBody)) -ContentType "application/json" -Headers $requestHeaders 
+		
+
 		$statusCode = $response.statuscode;
 
 		write-log -Message "HTTP Request Success. HTTP Status Code: $statusCode"  -Level "Info";
@@ -279,7 +291,7 @@ function CreateEmployee{
 
 		 	$response = $_.ErrorDetails.Message
 		   	$err=$_.Exception;
-			$statusCode = $err.Response.StatusCode.value__
+			$statusCode = $err.Response.StatusCode.value__			
 			
 			write-log -Message "HTTP Request Failed. HTTP Status Code: $statusCode"  -Level "Error";
 			if ($response) {write-log $response -Level "Debug";}
