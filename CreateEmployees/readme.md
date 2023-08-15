@@ -1,6 +1,6 @@
 # Import Employees 
 
-Import employees from ax Excel sheet into a Dovetail system.
+Import employees from ax Excel sheet into a Dovetail HR system.
 Uses the Dovetail create-employee API.
 
 ### Setup
