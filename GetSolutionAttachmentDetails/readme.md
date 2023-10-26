@@ -14,7 +14,7 @@ Edit the GetSolutionAttachmentDetails.ps1 file, setting:
 * password
 * getSolutionUrl
 
-To run, from a PowerShell prompt: `.\GetSolutionAttachmentDetails.ps1 .\solutions.xlsx`
+To run, from a PowerShell prompt: `.\GetSolutionAttachmentDetails.ps1 .\Solutions.xlsx`
 
 Output will be `attachments.csv`, which is a CSV file of all solution attachments
 
