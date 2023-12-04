@@ -1,7 +1,17 @@
 # Generates an excel file of cases that can then be loaded with the ImportCases.ps1 script
+# Note: There's a bunch of hard-coded data here; starting around line 160 
 
-# How many cases to generate
-$numCases = 1;
+<#
+Calling syntax:
+	.\generate.ps1 10 
+	Generate an excel file of 10 cases
+#>
+
+param(
+	[Parameter(Mandatory = $true)]
+	[ValidateRange("Positive")]
+	[Int] $numCases
+)
 
 # build the excel file name
 $excelFileName = "$($numCases)-cases.xlsx";
@@ -111,19 +121,22 @@ Function Get-RandomDate {
 ##################
 # Main
 ##################
-If ((Get-Module -ListAvailable -Name "ImportExcel") -eq $null){
+If ($null -eq (Get-Module -ListAvailable -Name "ImportExcel") ){
 	Install-module ImportExcel;
 }
 
-If ((Get-Module -ListAvailable -Name "NameIT") -eq $null){
+If ($null -eq  (Get-Module -ListAvailable -Name "NameIT")){
 	Install-Module NameIT;
 }
 
-If ((Get-Module -ListAvailable -Name "LoremText") -eq $null){
+If ($null -eq  (Get-Module -ListAvailable -Name "LoremText")){
 	Install-Module LoremText;
 }
 
- . .\LoremText.ps1
+# FixUp the LoremText Module
+# I think the problem is that the RootModule in the .psd1 file isn't set. 
+$LoremTextModule = ((Get-Module -ListAvailable LoremText).path).replace('psd1','psm1');
+Import-Module $LoremTextModule;
 
 $ExcelParams = @{
         Path    = $excelFileName
@@ -146,14 +159,14 @@ for ($i=1; $i -le $numCases; $i++) {
 	$title = LoremText -Paragraphs 1 -Sentences 1;
 
 	$row = [PSCustomObject]@{
-		ID	= 'old_'+$i
+		# ID	= 'old_'+$i
 		Title = $title	
 		Notes = $notes
 		employeeId = 21118
 		concerningEmployeeId= ''	
 		condition= 'Closed'		
 		closeNotes= 'These are closing notes'		
-		closeResolution= 'QuickClose'	
+		closeResolution= 'Quick Close'	
 		closeDate= $closeDateString	
 		status= 'Researching'	
 		caseType= 'Policies'		
